@@ -6,9 +6,11 @@ export default function App() {
   const [input, setInput] = useState('');
 
   // IMPORTANT: include http://
-  const server = 'http://192.168.1.199:5001';
+  // const server = 'http://192.168.1.199:5001';
+  const server = 'http://192.168.1.122:5001';
 
   const onSubmit = async () => {
+    setInput('');
     try {
       const response = await fetch(`${server}/receiveInput`, {
         method: 'POST',
@@ -30,6 +32,7 @@ export default function App() {
       <TextInput
         style={styles.textInput}
         placeholder="Enter input:"
+        keyboardType='phone-pad' // show only the numbers for ease of input
         value={input}
         onChangeText={setInput}
       />

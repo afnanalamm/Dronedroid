@@ -4,7 +4,8 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-rpiSerial = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+# rpiSerial = serial.Serial('/dev/ttyACM0', 9600, timeout=1)    # this line is for RPi/Linux. Change ACM to correct port arduino is connected to
+rpiSerial = serial.Serial('COM3', 9600, timeout=1) # this line is for Windows. Change COM3 to correct port arduino is connected to
 time.sleep(2)
 
 @app.route('/receiveInput', methods=['POST'])
@@ -24,7 +25,7 @@ def receive_input():
     return jsonify({"status": "ok", "received": text})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=False)
 
 
 
