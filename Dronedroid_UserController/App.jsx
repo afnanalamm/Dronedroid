@@ -1,46 +1,48 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TextInput, Pressable } from 'react-native';
-import React, { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Accelerometer } from 'expo-sensors';
+
+// Different server addresses for different setup locations
+
+const server = 'http://192.168.1.122:5001'; // PC on home wifi
+// const server = 'http://192.168.1.122:5001'; // RPi on home wifi
+// const server = 'http://10.30.12.63:5001'; // RPi on school wifi
+
 
 export default function App() {
-  const [input, setInput] = useState('');
+  const updateInterval =300; // sensor update interval in milliseconds
+  
 
-  // IMPORTANT: include http://
-  // const server = 'http://192.168.1.199:5001';
-  const server = 'http://192.168.1.122:5001';
+  const [accel, setAccel] = useState({ x: 0, y: 0 });
 
-  const onSubmit = async () => {
-    setInput('');
-    try {
-      const response = await fetch(`${server}/receiveInput`, {
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(updateInterval);
+
+    const subscription = Accelerometer.addListener(({ x, y }) => {
+      setAccel({ x, y });
+    });
+
+    const interval = setInterval(() => {
+      fetch(`${server}/receiveInput`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: input }),
-      });
+        body: JSON.stringify(accel),
+      }).catch(err => console.log(err));
+    }, updateInterval);
 
-      const data = await response.json();
-      console.log(data);
-    } catch (error) {
-      console.log('Error sending input:', error);
-    }
-  };
+    return () => {
+      subscription.remove();
+      clearInterval(interval);
+    };
+  }, [accel]);
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.textInput}
-        placeholder="Enter input:"
-        keyboardType='phone-pad' // show only the numbers for ease of input
-        value={input}
-        onChangeText={setInput}
-      />
-
-      <Pressable style={styles.pressablePostButton} onPress={onSubmit}>
-        <Text>Post!</Text>
-      </Pressable>
-
+      <Text>X: {accel.x.toFixed(2)}</Text>
+      <Text>Y: {accel.y.toFixed(2)}</Text>
       <StatusBar style="auto" />
     </View>
   );
@@ -51,19 +53,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#B76E79',
-  },
-  textInput: {
-    width: '80%',
-    height: 40,
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-    color: '#ffffff',
-  },
-  pressablePostButton: {
-    backgroundColor: '#ffee00cc',
-    padding: 10,
-    borderRadius: 5,
+    backgroundColor: '#d0c900ff',
   },
 });
