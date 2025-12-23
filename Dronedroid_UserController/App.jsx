@@ -1,43 +1,56 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Accelerometer } from 'expo-sensors';
+import io from 'socket.io-client'; // Import after install
 
-// Different server addresses for different setup locations
-
-const server = 'http://192.168.1.122:5001'; // PC on home wifi
-// const server = 'http://192.168.1.122:5001'; // RPi on home wifi
-// const server = 'http://10.30.12.63:5001'; // RPi on school wifi
-
+const server = 'http://192.168.1.122:5001'; // Your server IP:port
+const updateInterval = 200; // ms between emits (e.g., ~3.3 Hz)
 
 export default function App() {
-  const updateInterval =300; // sensor update interval in milliseconds
-  
-
   const [accel, setAccel] = useState({ x: 0, y: 0 });
+  const latestAccel = useRef({ x: 0, y: 0 });
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    Accelerometer.setUpdateInterval(updateInterval);
-
-    const subscription = Accelerometer.addListener(({ x, y }) => {
-      setAccel({ x, y });
+    // Connect to WebSocket
+    socketRef.current = io(server, {
+      transports: ['websocket'], // Force WebSocket (safer, avoids polling fallback)
+      reconnection: true, // Auto-reconnect on drops
+      reconnectionAttempts: 5,
+      timeout: 20000,
     });
 
+    socketRef.current.on('connect', () => {
+      console.log('Connected to WebSocket');
+    });
+
+    socketRef.current.on('connect_error', (err) => {
+      console.log('Connection error:', err.message);
+    });
+
+    // Accelerometer setup: Listen frequently for fresh data
+    Accelerometer.setUpdateInterval(50); // 20 Hz for responsive capture
+    const subscription = Accelerometer.addListener(({ x, y }) => {
+      latestAccel.current = { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 }; // Round to 2 decimals
+      setAccel({ x, y }); // For UI only
+    });
+
+    // Periodic emit: Send latest data every 300ms
     const interval = setInterval(() => {
-      fetch(`${server}/receiveInput`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(accel),
-      }).catch(err => console.log(err));
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit('accel', latestAccel.current);
+      }
     }, updateInterval);
 
     return () => {
       subscription.remove();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
       clearInterval(interval);
     };
-  }, [accel]);
+  }, []);
 
   return (
     <View style={styles.container}>

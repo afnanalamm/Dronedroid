@@ -1,6 +1,7 @@
 import serial
 import time
 from flask import Flask, request, jsonify
+from flask_socketio import SocketIO, emit
 import logging
 
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
@@ -8,10 +9,29 @@ logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key'  # Required for SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
 # rpiSerial = serial.Serial('/dev/ttyACM0', 9600, timeout=1)    # this line is for RPi/Linux. Change ACM to correct port arduino is connected to
 # rpiSerial = serial.Serial('COM3', 9600, timeout=1) # this line is for Windows. Change COM3 to correct port arduino is connected to
 # time.sleep(2)
+
+
+@socketio.on('accel')
+def handle_accel(data):
+    x = data.get('x', 0)
+    y = data.get('y', 0)
+    timestamp = time.strftime('%H:%M:%S') + f'.{int(time.time() * 1000) % 1000:03d}'
+    print(f"[{timestamp}] {x:.2f} {y:.2f}")
+
+# Optional: Handle connections for debugging
+# @socketio.on('connect')
+# def connect():
+#     print('Client connected')
+
+# @socketio.on('disconnect')
+# def disconnect():
+#     print('Client disconnected')
 
 @app.route('/receiveInput', methods=['POST'])
 def receive_input():
@@ -37,8 +57,11 @@ def receive_input():
 
     return jsonify({"status": "ok", "received": {"x": x, "y": y}})
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=False)
+# if __name__ == "__main__":
+#     app.run(host="0.0.0.0", port=5001, debug=False)
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=5001, debug=False)
 
 
 
