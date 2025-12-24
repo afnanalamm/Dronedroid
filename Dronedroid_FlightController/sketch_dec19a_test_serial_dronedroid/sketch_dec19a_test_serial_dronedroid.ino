@@ -9,7 +9,8 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define DIR1 6
 #define DIR2 4
 
-const float gravity = 1;
+
+const float gravity = 100;
 
 void setup() {
   pinMode(ENABLE1, OUTPUT);
@@ -22,8 +23,10 @@ void setup() {
 
   lcd.begin(16, 2);
   Serial.begin(9600);
+  inputString.reserve(50);  // Reserve space to avoid fragmentation
+  // Serial.setTimeout(10); 
 
-  lcd.print("X,Y Input:");
+  // lcd.print("Input:");
   lcd.setCursor(0, 1);
 }
 
@@ -32,24 +35,26 @@ void loop() {
 
     // Read X and Y as floats: "x,y\n"
     float x = Serial.parseFloat();
-    float y = Serial.parseFloat();
+    // float y = Serial.parseFloat();
 
     // Clamp values to gravity
     x = constrain(x, -gravity, gravity);
-    y = constrain(y, -gravity, gravity);
+    // y = constrain(y, -gravity, gravity);  
 
     // Convert float → int for map()
-    int x_pwm = map(x * 100, -gravity * 100, gravity * 100, 0, 255);
-    int y_pwm = map(y * 100, -gravity * 100, gravity * 100, 0, 255);
+    int x_pwm = map(x, -gravity, gravity, 0, 255);
+    // int y_pwm = map(y, -gravity, gravity, 0, 255);
 
     analogWrite(ENABLE1, x_pwm);
-    analogWrite(ENABLE2, y_pwm);
+    // analogWrite(ENABLE2, y_pwm);
 
     // LCD display
+    String inputString = Serial.readStringUntil('\n');
+    lcd.clear();
 
-    lcd.setCursor(0, 1);
-    lcd.print(x_pwm);
-    lcd.setCursor(1, 1);
-    lcd.print(y_pwm);
+    lcd.setCursor(0, 0);
+    lcd.print(inputString);
+    // lcd.setCursor(1, 1);
+    // lcd.print(y);
   }
 }
