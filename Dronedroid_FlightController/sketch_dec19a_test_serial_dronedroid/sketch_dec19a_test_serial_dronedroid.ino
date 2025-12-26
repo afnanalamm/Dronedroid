@@ -12,6 +12,10 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 const float gravity = 100;
 
+String inputString = "";         // A String to hold incoming data
+boolean stringComplete = false;  // Whether the string is complete
+
+
 void setup() {
   pinMode(ENABLE1, OUTPUT);
   pinMode(ENABLE2, OUTPUT);
@@ -32,29 +36,72 @@ void setup() {
 
 void loop() {
   if (Serial.available()) {
+    serialEvent();
+
+      if (stringComplete) {
+
+        // Expected format: pwm1,pwm2
+        float pwm1 = 0;
+        float pwm2 = 0;
+
+        int commaIndex = inputString.indexOf(',');
+
+        if (commaIndex > 0) {
+          pwm1 = inputString.substring(0, commaIndex).toFloat();
+          pwm2 = inputString.substring(commaIndex + 1).toFloat();
+        }
+
+        pwm1 = constrain(pwm1, 0, 255);
+        pwm2 = constrain(pwm2, 0, 255);
+
+        analogWrite(ENABLE1, (int)pwm1);
+        analogWrite(ENABLE2, (int)pwm2);
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print(inputString);
+
+        inputString = "";
+        stringComplete = false;
+      }
+
 
     // Read X and Y as floats: "x,y\n"
-    float x = Serial.parseFloat();
+    // float x = Serial.parseFloat();
     // float y = Serial.parseFloat();
 
     // Clamp values to gravity
-    x = constrain(x, -gravity, gravity);
+    // x = constrain(x, -gravity, gravity);
     // y = constrain(y, -gravity, gravity);  
 
     // Convert float → int for map()
-    int x_pwm = map(x, -gravity, gravity, 0, 255);
+    // int x_pwm = map(x, -gravity, gravity, 0, 255);
     // int y_pwm = map(y, -gravity, gravity, 0, 255);
 
-    analogWrite(ENABLE1, x_pwm);
+    // analogWrite(ENABLE1, x_pwm);
     // analogWrite(ENABLE2, y_pwm);
 
     // LCD display
-    String inputString = Serial.readStringUntil('\n');
-    lcd.clear();
+    // String inputString = Serial.readStringUntil('\n');
+    // lcd.clear();
 
-    lcd.setCursor(0, 0);
-    lcd.print(inputString);
+    // lcd.setCursor(0, 0);
+    // lcd.print(inputString);
     // lcd.setCursor(1, 1);
     // lcd.print(y);
+  }
+}
+
+void serialEvent() {
+  while (Serial.available()) {
+    char inChar = (char)Serial.read();
+
+    if (inChar == '\n' || inChar == '\r') {
+      if (inputString.length() > 0) {
+        stringComplete = true;
+      }
+    } else {
+      inputString += inChar;
+    }
   }
 }

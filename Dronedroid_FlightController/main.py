@@ -12,8 +12,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'  # Required for SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
-# controllerSerial = serial.Serial('/dev/ttyACM0', 9600, timeout=1)    # this line is for RPi/Linux. Change ACM to correct port arduino is connected to
-controllerSerial = serial.Serial('COM3', 9600, timeout=1) # this line is for Windows. Change COM3 to correct port arduino is connected to
+controllerSerial = serial.Serial('/dev/ttyACM0', 9600, timeout=1)    # this line is for RPi/Linux. Change ACM to correct port arduino is connected to
+# controllerSerial = serial.Serial('COM3', 9600, timeout=1) # this line is for Windows. Change COM3 to correct port arduino is connected to
 time.sleep(2)
 
 
@@ -32,8 +32,8 @@ def handle_accel(data):
 
             x *= 100  # scale to get integer values
             y *= 100
-            
-            serial_data = f"{x}\n" #serial_data = f"{x}, {y}\n"
+
+            serial_data = f"{x},{y}\n" #serial_data = f"{x}, {y}\n"
             print(serial_data.encode('ascii'))
 
             controllerSerial.write(serial_data.encode('ascii'))
